@@ -1,0 +1,46 @@
+{
+  "name": "grafi",
+  "version": "0.0.0",
+  "description": "",
+  "main": "grafi.js",
+  "scripts": {
+    "test": "node grafi-${name}.test.js",
+    "build": "node_modules/.bin/smash src/_blueprint.js | node_modules/.bin/standard-format - > grafi.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grafijs/grafi.git"
+  },
+  "keywords": [
+    "grafi",
+    "images",
+    "image",
+    "graphics",
+    "graphic",
+    "canvas"
+  ],
+  "author": "The Grafi Project Contributors (http://grafijs.org/)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/grafijs/grafi/issues"
+  },
+  "homepage": "https://github.com/grafijs/grafi#readme",
+  "devDependencies": {
+    "smash": "0.0.15",
+    "standard-format": "2.1.1",
+    "grafi-blur": "git://github.com/grafijs/grafi-blur.git",
+    "grafi-brightness": "git://github.com/grafijs/grafi-brightness.git",
+    "grafi-contrast": "git://github.com/grafijs/grafi-contrast.git",
+    "grafi-convolution": "git://github.com/grafijs/grafi-convolution.git",
+    "grafi-despeckle": "git://github.com/grafijs/grafi-despeckle.git",
+    "grafi-dither": "git://github.com/grafijs/grafi-dither.git",
+    "grafi-edge": "git://github.com/grafijs/grafi-edge.git",
+    "grafi-formatter": "git://github.com/grafijs/grafi-formatter.git",
+    "grafi-grayscale": "git://github.com/grafijs/grafi-grayscale.git",
+    "grafi-invert": "git://github.com/grafijs/grafi-invert.git",
+    "grafi-posterize": "git://github.com/grafijs/grafi-posterize.git",
+    "grafi-sharpen": "git://github.com/grafijs/grafi-sharpen.git",
+    "grafi-solarize": "git://github.com/grafijs/grafi-solarize.git",
+    "grafi-threshold": "git://github.com/grafijs/grafi-threshold.git"
+  }
+}
