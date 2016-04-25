@@ -3,11 +3,32 @@
     ## ImageData object constructor
     Every return from grafi method is formatted to an ImageData object.
     This constructor is used when `window` is not available.
+    (for example you are using grafi in node)
    */
-  function ImageData (pixelData, width, height) {
+  function GrafiImageData (pixelData, width, height) {
     this.width = width
     this.height = height
     this.data = pixelData
+  }
+
+  /**
+    ## Color Depth Checker
+    To maintain simplicity of code, grafi only accepts ImageData in RGBA
+    Length of pixelData must be 4 times as much as available pixels (width * height).
+   */
+  function checkColorDepth (dataset, width, height) {
+    var colorDepth
+    if (dataset.width && dataset.height) {
+      // When ImageData object was passed as dataset
+      colorDepth = dataset.data.length / (dataset.width * dataset.height)
+    } else {
+      // When just an array was passed as dataset
+      colorDepth = dataset.length / (width * height)
+    }
+
+    if (colorDepth !== 4) {
+      throw new Error('data and size of the image does now match')
+    }
   }
 
   /**
@@ -24,24 +45,19 @@
         // ImageData { data: Uint8ClampedArray[400], width: 10, height: 10, }
    */
   function formatter (pixelData, width, height) {
-    var colorDepth = pixelData.length / (width * height)
-
-    // Length of pixelData must be multipul of available pixels (width * height).
-    // Maximum color depth allowed is 4 (RGBA)
-    if (Math.round(colorDepth) !== colorDepth || colorDepth > 4) {
-      throw new Error('data and size of the image does now match')
-    }
+    // check the size of data matches
+    checkColorDepth(pixelData, width, height)
 
     if (!(pixelData instanceof Uint8ClampedArray)) {
       throw new Error('pixel data passed is not an Uint8ClampedArray')
     }
 
-    // If window is avilable create ImageData using browser API,
+    // If window is available create ImageData using browser API,
     // otherwise call ImageData constructor
-    if (typeof window === 'object' && colorDepth === 4) {
+    if (typeof window === 'object') {
       return new window.ImageData(pixelData, width, height)
     }
-    return new ImageData(pixelData, width, height)
+    return new GrafiImageData(pixelData, width, height)
   }
   /**
     ## convolution method
@@ -178,58 +194,39 @@
   }
   /**
     ## brightness method
-    Brief description
+    Adjust brightness of an image based on level passed
 
     ### Parameters
       - imageData `Object`: ImageData object
       - option `Object` : Option object
         - level `Number` : brightness level
-        - monochrome `Boolean` : output to be monochrome (single color depth) image
 
     ### Example
-        //code sample goes here
+        var input = { data: Uint8ClampedArray[400], width: 10, height: 10 }
+        // brighten image
+        grafi.brightness(input, {level: 10})
+        // darken image
+        grafi.brightness(input, {level: -10})
    */
   function brightness (imgData, option) {
+    // sanitary check for input data
+    checkColorDepth(imgData)
+
     // check options object
     option = option || {}
-    option.monochrome = option.monochrome || false
-    option.level = parseInt(option.level, 10) || 0
+    option.level = option.level || 0
 
     var pixelSize = imgData.width * imgData.height
-    var dataLength = imgData.data.length
-    var colorDepth = dataLength / pixelSize
     var level = option.level
 
-    if (colorDepth !== 4 && colorDepth !== 1) {
-      throw new Error('ImageObject has incorrect color depth')
-    }
-
-    var newPixelData = new Uint8ClampedArray(pixelSize * (option.monochrome || 4))
-    var p, _i, _data
-    for (p = 0; p < pixelSize; p++) {
-      _data = imgData.data[p] + level
-
-      // case 1. output should be 1 channel (monochrome)
-      if (option.monochrome) {
-        newPixelData[p] = _data
-        continue
-      }
-
-      // case 2. input is 1 channel but output should be RGBA
-      if (colorDepth === 1) {
-        newPixelData[_i] = _data
-        newPixelData[_i + 1] = _data
-        newPixelData[_i + 2] = _data
-        newPixelData[_i + 3] = 255
-        continue
-      }
-
-      // case 3. input is RGBA  and output should also be RGBA
-      _i = p * 4
-      newPixelData[_i] = imgData.data[_i] + level
-      newPixelData[_i + 1] = imgData.data[_i + 1] + level
-      newPixelData[_i + 2] = imgData.data[_i + 2] + level
-      newPixelData[_i + 3] = imgData.data[_i + 3]
+    var newPixelData = new Uint8ClampedArray(pixelSize * 4)
+    var pixel, index
+    for (pixel = 0; pixel < pixelSize; pixel++) {
+      index = pixel * 4
+      newPixelData[index] = imgData.data[index] + level
+      newPixelData[index + 1] = imgData.data[index + 1] + level
+      newPixelData[index + 2] = imgData.data[index + 2] + level
+      newPixelData[index + 3] = imgData.data[index + 3]
     }
 
     return formatter(newPixelData, imgData.width, imgData.height)
@@ -400,20 +397,23 @@
       - imageData `Object`: ImageData object
       - option `Object` : Option object
           - mode `String` : grayscaling mode, 'luma', 'simple', or 'average'
-          - monochrome `Boolean` : output to be monochrome (single color depth) image
+          - channel `String` : color channel to use when in simple mode, 'r', 'g', or 'b'
 
     ### Example
-        var input = { data: Uint8ClampedArray[400], width: 10, height: 10, }
-        grafi.grayscale(input, {mode: 'average', monochrome: true})
-        // Since monochrome flag is true, returned object will have smaller data
-        // ImageData { data: Uint8ClampedArray[100], width: 10, height: 10, }
+        var input = { data: Uint8ClampedArray[400], width: 10, height: 10 }
+        // grayscale based on average of RGB colors
+        grafi.grayscale(input, {mode: 'average'})
+        // grayscale by repeating value of specified color channel across all channel
+        grafi.grayscale(input, {mode: 'simple', channel: 'r'})
    */
   function grayscale (imgData, option) {
+    // sanitary check for input data
+    checkColorDepth(imgData)
+
     // set check options object & set default options if necessary
     option = option || {}
     option.mode = option.mode || 'luma'
-    option.monochrome = option.monochrome || false
-    option.channel = Number(option.channel) || 1
+    option.channel = option.channel || 'g'
 
     // different grayscale methods
     var mode = {
@@ -421,31 +421,22 @@
         return 0.299 * r + 0.587 * g + 0.114 * b
       },
       'simple': function (r, g, b, a, c) {
-        return arguments[c]
+        var ref = {r: 0, g: 1, b: 2}
+        return arguments[ref[c]]
       },
       'average': function (r, g, b) {
         return (r + g + b) / 3
       }
     }
 
-    // sanitary check for input data
-    var dataLength = imgData.data.length
     var pixelSize = imgData.width * imgData.height
-    if (dataLength / pixelSize !== 4) {
-      throw new Error('ImageObject has incorrect color depth, please pass RGBA image')
-    }
-
-    var newPixelData = new Uint8ClampedArray(pixelSize * (option.monochrome || 4))
+    var newPixelData = new Uint8ClampedArray(pixelSize * 4)
     var i, _grayscaled, _index
 
     // loop through pixel size, extract r, g, b values & calculate grayscaled value
     for (i = 0; i < pixelSize; i++) {
       _index = i * 4
       _grayscaled = mode[option.mode](imgData.data[_index], imgData.data[_index + 1], imgData.data[_index + 2], imgData.data[_index + 3], option.channel)
-      if (option.monochrome) {
-        newPixelData[i] = _grayscaled
-        continue
-      }
       newPixelData[_index] = _grayscaled
       newPixelData[_index + 1] = _grayscaled
       newPixelData[_index + 2] = _grayscaled
@@ -459,90 +450,73 @@
 
     ### Parameters
       - imageData `Object`: ImageData object
+
+    ### Example
+        var input = { data: Uint8ClampedArray[400], width: 10, height: 10, }
+        grafi.invert(input)
    */
   function invert (imgData) {
-    // colorDepth: How many byte per pixel this image has
-    //             maximum colorDepth possible is 4 (RGBA)
+    checkColorDepth(imgData)
     var dataLength = imgData.data.length
-    var colorDepth = dataLength / (imgData.width * imgData.height)
-    var processedPixeldata = new Uint8ClampedArray(dataLength)
+    var newPixeldata = new Uint8ClampedArray(dataLength)
     var i
     for (i = 0; i < dataLength; i++) {
-      // colorDepth 4 = the image has Alpha channel, skip invert every 4th byte
-      if (colorDepth === 4 && ((i + 1) % 4) === 0) {
-        processedPixeldata[i] = imgData.data[i]
+      // the image has Alpha channel, skip invert every 4th one
+      if ((i + 1) % 4 === 0) {
+        newPixeldata[i] = imgData.data[i]
         continue
       }
-      processedPixeldata[i] = 255 - imgData.data[i]
+      newPixeldata[i] = 255 - imgData.data[i]
     }
-    return formatter(processedPixeldata, imgData.width, imgData.height)
+    return formatter(newPixeldata, imgData.width, imgData.height)
   }
   /**
     ## posterize method
-    Brief description
+    posterize given image
 
     ### Parameters
       - imageData `Object`: ImageData object
       - option `Object` : Option object
+          - level `Number` : posterize level, from 2 - 256
 
     ### Example
-        //code sample goes here
+        var input = { data: Uint8ClampedArray[400], width: 10, height: 10 }
+        // posterlize in 4 levels
+        grafi.posterize(input, {level: 4})
    */
   function posterize (imgData, option) {
+    // make sure data is good data
+    checkColorDepth(imgData)
+
     // check options object & set default variables
     option = option || {}
-    option.monochrome = option.monochrome || false
     option.level = option.level || 4
 
-    // Check length of data & avilable pixel size to make sure data is good data
     var pixelSize = imgData.width * imgData.height
-    var dataLength = imgData.data.length
-    var colorDepth = dataLength / pixelSize
-    if (colorDepth !== 4 && colorDepth !== 1) {
-      throw new Error('ImageObject has incorrect color depth')
-    }
-
-    var newPixelData = new Uint8ClampedArray(pixelSize * (option.monochrome || 4))
+    var newPixelData = new Uint8ClampedArray(pixelSize * 4)
 
     var lookupTable = new Uint8Array(256)
-    var colorSize = 256 / (option.level - 1) // 23
-    var stepSize = 256 / option.level // 21
-    var l, _li, r, p, _i, _data
+    var colorSize = 256 / (option.level - 1)
+    var stepSize = 256 / option.level
+    var level, step, levelindex, pixel, index
 
-    for (l = 0; l < option.level; l++) {
-      for (s = 0; s < stepSize; s++) {
-        _li = Math.round(l * stepSize + s)
-        if (l === option.level - 1) {
-          lookupTable[_li] = 255
+    for (level = 0; level < option.level; level++) {
+      for (step = 0; step < stepSize; step++) {
+        levelindex = Math.round(level * stepSize + step)
+        if (level === option.level - 1) {
+          lookupTable[levelindex] = 255
           continue
         }
-        lookupTable[_li] = l * colorSize
+        lookupTable[levelindex] = level * colorSize
       }
     }
-    console.log(lookupTable)
 
-    for (p = 0; p < pixelSize; p++) {
-      if (colorDepth === 1) {
-        _data = lookupTable[imgData.data[p]]
-        // case 1. input is 1 channel and output should be 1 channel (monochrome)
-        if (option.monochrome) {
-          newPixelData[p] = _data
-          continue
-        }
-        // case 2. input is 1 channel but output should be RGBA
-        newPixelData[_i] = _data
-        newPixelData[_i + 1] = _data
-        newPixelData[_i + 2] = _data
-        newPixelData[_i + 3] = 255
-        continue
-      }
-
-      // case 3. input is RGBA  and output should also be RGBA
-      _i = p * 4
-      newPixelData[_i] = lookupTable[imgData.data[_i]]
-      newPixelData[_i + 1] = lookupTable[imgData.data[_i + 1]]
-      newPixelData[_i + 2] = lookupTable[imgData.data[_i + 2]]
-      newPixelData[_i + 3] = imgData.data[_i + 3]
+    for (pixel = 0; pixel < pixelSize; pixel++) {
+      index = pixel * 4
+      newPixelData[index] = lookupTable[imgData.data[index]]
+      newPixelData[index + 1] = lookupTable[imgData.data[index + 1]]
+      newPixelData[index + 2] = lookupTable[imgData.data[index + 2]]
+      newPixelData[index + 3] = imgData.data[index + 3]
     }
 
     return formatter(newPixelData, imgData.width, imgData.height)
@@ -648,42 +622,128 @@
   }
   /**
     ## threshold method
-    Brief description
+    Threshold an image on the level passed as option
 
     ### Parameters
       - imageData `Object`: ImageData object
       - option `Object` : Option object
-          - mode `String` : grayscaling mode, 'luma', 'simple', or 'average'
-          - monochrome `Boolean` : output to be monochrome (single color depth) image
+          - level `Number` : threshold level, from 0 to 255
+          - grayscaled `Boolean` : input imageData is grayscaled or not
 
     ### Example
-        //code sample goes here
+        var input = { data: Uint8ClampedArray[400], width: 10, height: 10 }
+        // threshold at level 200
+        grafi.threshold(input, {level: 200})
+        // if input image is already grayscaled, pass grayscaeled flag to bypass redundant grayscaling
+        grafi.threshold(input, {level: 200, grayscaled: true})
    */
   function threshold (imgData, option) {
+    // make sure data is good data
+    checkColorDepth(imgData)
+
     // set check options object & set default options if necessary
     option = option || {}
     option.level = option.level || 127
-    option.monochrome = option.monochrome || false
+    option.grayscaled = option.grayscaled || false
+
     var pixelSize = imgData.width * imgData.height
-    var grayschaledMonoImage = grayscale(imgData, {monochrome: true})
-    var newPixelData = new Uint8ClampedArray(pixelSize * (option.monochrome || 4))
+    var grayscaledData = imgData.data
+    if (!option.grayscaled) {
+      grayscaledData = grayscale(imgData).data
+    }
+    var newPixelData = new Uint8ClampedArray(pixelSize * 4)
     var lookupTable = new Uint8Array(256)
-    var i, p, _index
+    var i, pixel, index
     for (i = option.level; i < 256; i++) {
       lookupTable[i] = 255
     }
 
-    for (p = 0; p < pixelSize; p++) {
-      if (option.monochrome) {
-        newPixelData[p] = lookupTable[grayschaledMonoImage.data[p]]
-        continue
-      }
-      _index = p * 4
-      newPixelData[_index] = lookupTable[grayschaledMonoImage.data[p]]
-      newPixelData[_index + 1] = lookupTable[grayschaledMonoImage.data[p]]
-      newPixelData[_index + 2] = lookupTable[grayschaledMonoImage.data[p]]
-      newPixelData[_index + 3] = imgData.data[_index + 3]
+    for (pixel = 0; pixel < pixelSize; pixel++) {
+      index = pixel * 4
+      newPixelData[index] = lookupTable[grayscaledData[index]]
+      newPixelData[index + 1] = lookupTable[grayscaledData[index + 1]]
+      newPixelData[index + 2] = lookupTable[grayscaledData[index + 2]]
+      newPixelData[index + 3] = imgData.data[index + 3]
     }
+    return formatter(newPixelData, imgData.width, imgData.height)
+  }
+  /**
+    ## pseudocolor method
+    Gibe grayscaled image rainbow pseudocolor
+    TODO: support different pseudocolor scheme
+
+    ### Parameters
+      - imageData `Object`: ImageData object
+      - option `Object` : Option object
+          - grayscaled `Boolean` : input imageData is grayscaled or not
+
+    ### Example
+        var input = { data: Uint8ClampedArray[400], width: 10, height: 10 }
+        // turn image into pseudocolor
+        grafi.pseudocolor(input)
+        // if input image is already grayscaled, pass grayscaeled flag to bypass redundant grayscaling
+        grafi.pseudocolor(input, {grayscaled: true})
+   */
+  function pseudocolor (imgData, option) {
+    // sanitary check for input data
+    checkColorDepth(imgData)
+
+    // check options object & set default variables
+    option = option || {}
+    option.grayscaled = option.grayscaled || false
+
+    var pixelSize = imgData.width * imgData.height
+    var grayscaledData = imgData.data
+    if (!option.grayscaled) {
+      grayscaledData = grayscale(imgData).data
+    }
+    var newPixelData = new Uint8ClampedArray(pixelSize * 4)
+    var redLookupTable = new Uint8ClampedArray(256)
+    var greenLookupTable = new Uint8ClampedArray(256)
+    var blueLookupTable = new Uint8ClampedArray(256)
+
+    redLookupTable.forEach(function (d, i) {
+      var n = 0
+      if (i > 128 && i < 192) {
+        n = (i - 128) * (256 / (192 - 128))
+      }
+      if (i >= 192) {
+        n = 255
+      }
+      redLookupTable[i] = n
+    })
+
+    greenLookupTable.forEach(function (d, i) {
+      var n = 255
+      if (i < 64) {
+        n = i * (256 / 64)
+      }
+      if (i >= 192) {
+        n = 255 - ((i - 191) * (256 / (256 - 192)))
+      }
+      greenLookupTable[i] = n
+    })
+
+    blueLookupTable.forEach(function (d, i) {
+      var n = 0
+      if (i > 64 && i < 128) {
+        n = 255 - ((i - 63) * (256 / (192 - 128)))
+      }
+      if (i < 65) {
+        n = 255
+      }
+      blueLookupTable[i] = n
+    })
+
+    var pixel, index
+    for (pixel = 0; pixel < pixelSize; pixel++) {
+      index = pixel * 4
+      newPixelData[index] = redLookupTable[grayscaledData[index]]
+      newPixelData[index + 1] = greenLookupTable[grayscaledData[index + 1]]
+      newPixelData[index + 2] = blueLookupTable[grayscaledData[index + 2]]
+      newPixelData[index + 3] = imgData.data[index + 3]
+    }
+
     return formatter(newPixelData, imgData.width, imgData.height)
   }
 
@@ -700,6 +760,7 @@
   grafi.sharpen = sharpen
   grafi.solarize = solarize
   grafi.threshold = threshold
+  grafi.pseudocolor = pseudocolor
 
   if (typeof module === 'object' && module.exports) {
     module.exports = grafi

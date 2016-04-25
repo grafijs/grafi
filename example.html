@@ -22,7 +22,7 @@
     }
     function border(){
       var imagedata = cCtx.getImageData(0, 0, original.width, original.height)
-      var newImage =  grafi.threshold(grafi.invert(grafi.grayscale(imagedata, {mode:'simple',channel:'0'})),{level:120})
+      var newImage =  grafi.contrast(grafi.invert(grafi.contrast(grafi.grayscale(imagedata, {mode:'simple', channel:'0'}), {level:2})), {level:5})
       // console.log(gsImage.data.toString())
       oCtx.putImageData(newImage, 0, 0)
     }

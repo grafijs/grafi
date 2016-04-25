@@ -41,6 +41,7 @@
     "grafi-posterize": "git://github.com/grafijs/grafi-posterize.git",
     "grafi-sharpen": "git://github.com/grafijs/grafi-sharpen.git",
     "grafi-solarize": "git://github.com/grafijs/grafi-solarize.git",
-    "grafi-threshold": "git://github.com/grafijs/grafi-threshold.git"
+    "grafi-threshold": "git://github.com/grafijs/grafi-threshold.git",
+    "grafi-pseudocolor": "git://github.com/grafijs/grafi-pseudocolor.git"
   }
 }
