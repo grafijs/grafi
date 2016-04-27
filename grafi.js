@@ -32,34 +32,6 @@
   }
 
   /**
-    ## formatter
-    Internal function used to format pixel data into ImageData object
-
-    ### Parameters
-      - pixelData `Uint8ClampedArray`: pixel representation of the image
-      - width `Number`: width of the image
-      - hight `Number`: height of the image
-
-    ### Example
-        formatter(new Uint8ClampedArray[400], 10, 10)
-        // ImageData { data: Uint8ClampedArray[400], width: 10, height: 10, }
-   */
-  function formatter (pixelData, width, height) {
-    // check the size of data matches
-    checkColorDepth(pixelData, width, height)
-
-    if (!(pixelData instanceof Uint8ClampedArray)) {
-      throw new Error('pixel data passed is not an Uint8ClampedArray')
-    }
-
-    // If window is available create ImageData using browser API,
-    // otherwise call ImageData constructor
-    if (typeof window === 'object') {
-      return new window.ImageData(pixelData, width, height)
-    }
-    return new GrafiImageData(pixelData, width, height)
-  }
-  /**
     ## convolution method
     Internal method to apply convolution filter
     !!! this method does not return ImageObject
@@ -157,7 +129,8 @@
         }
       }
     }
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
 
   /**
@@ -229,7 +202,8 @@
       newPixelData[index + 3] = imgData.data[index + 3]
     }
 
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
 
   /**
@@ -286,7 +260,8 @@
       newPixelData[_i + 3] = imgData.data[_i + 3]
     }
 
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## despeckle method
@@ -341,7 +316,8 @@
 
     // every return from grafi methods are ImageData,
     // internal function `formatter()` will take care of this
-    return formatter(_pixelData_, _width_, _height_)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## edge method
@@ -442,7 +418,8 @@
       newPixelData[_index + 2] = _grayscaled
       newPixelData[_index + 3] = imgData.data[_index + 3]
     }
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## invert method
@@ -458,17 +435,18 @@
   function invert (imgData) {
     checkColorDepth(imgData)
     var dataLength = imgData.data.length
-    var newPixeldata = new Uint8ClampedArray(dataLength)
+    var newPixelData = new Uint8ClampedArray(dataLength)
     var i
     for (i = 0; i < dataLength; i++) {
       // the image has Alpha channel, skip invert every 4th one
       if ((i + 1) % 4 === 0) {
-        newPixeldata[i] = imgData.data[i]
+        newPixelData[i] = imgData.data[i]
         continue
       }
-      newPixeldata[i] = 255 - imgData.data[i]
+      newPixelData[i] = 255 - imgData.data[i]
     }
-    return formatter(newPixeldata, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## posterize method
@@ -519,7 +497,8 @@
       newPixelData[index + 3] = imgData.data[index + 3]
     }
 
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## sharpen method
@@ -618,7 +597,8 @@
       newPixelData[_i + 3] = imgData.data[_i + 3]
     }
 
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## threshold method
@@ -665,7 +645,8 @@
       newPixelData[index + 2] = lookupTable[grayscaledData[index + 2]]
       newPixelData[index + 3] = imgData.data[index + 3]
     }
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
   /**
     ## pseudocolor method
@@ -744,7 +725,8 @@
       newPixelData[index + 3] = imgData.data[index + 3]
     }
 
-    return formatter(newPixelData, imgData.width, imgData.height)
+    imgData.data.set(newPixelData)
+    return imgData
   }
 
   var grafi = {}
