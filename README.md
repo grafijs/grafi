@@ -1,7 +1,7 @@
 # grafi.js
 Code for grafi.js
 
-WARNING : they code is pretty rough & documentation is not great. Gimme second as I go back to home form 2 weeks trip.
+WARNING : the code is pretty rough & documentation is not great. Gimme a second while I get back home from a 2 week trip.
 
 
 ## License
